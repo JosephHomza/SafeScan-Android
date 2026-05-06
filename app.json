@@ -17,20 +17,44 @@
         "foregroundImage": "./assets/images/icon-foreground.png",
         "backgroundColor": "#0a0a0f"
       },
-      "permissions": ["CAMERA", "INTERNET", "VIBRATE", "USE_BIOMETRIC"],
+      "permissions": [
+        "CAMERA",
+        "INTERNET",
+        "VIBRATE",
+        "USE_BIOMETRIC"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",
-          "data": [{ "scheme": "safescan" }],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "data": [
+            {
+              "scheme": "safescan"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
     "plugins": [
-      ["expo-router", { "root": "./app" }],
-      ["expo-camera", { "cameraPermission": "SafeScan needs camera to scan QR codes." }],
+      [
+        "expo-router",
+        {
+          "root": "./app"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "SafeScan needs camera to scan QR codes."
+        }
+      ],
       "expo-secure-store",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-font",
+      "expo-web-browser"
     ]
   }
 }

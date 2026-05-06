@@ -9,7 +9,7 @@ export function SignalAccordion({ signal }: { signal: Signal }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <Card>
+    <Card style={{ backgroundColor: "rgba(0, 0, 0, 0.14)", padding: 0, overflow: "hidden" }}>
       <Pressable
         accessibilityRole="button"
         onPress={() => {
@@ -17,14 +17,14 @@ export function SignalAccordion({ signal }: { signal: Signal }) {
           setExpanded((value) => !value);
         }}
       >
-        <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12, padding: 14 }}>
           <View style={{ flex: 1 }}>
             <Text style={{ color: theme.colors.textPrimary, fontWeight: "700" }}>{signal.check}</Text>
             <Text style={{ color: theme.colors.textSecondary, marginTop: 4 }}>{signal.result}</Text>
           </View>
           <SeverityBadge severity={signal.severity} />
         </View>
-        {expanded ? <Text style={{ color: theme.colors.textSecondary, lineHeight: 22, marginTop: 12 }}>{signal.description}</Text> : null}
+        {expanded ? <Text style={{ color: theme.colors.textSecondary, lineHeight: 22, paddingHorizontal: 14, paddingBottom: 14 }}>{signal.description}</Text> : null}
       </Pressable>
     </Card>
   );

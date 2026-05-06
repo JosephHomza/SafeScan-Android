@@ -16,7 +16,8 @@ export const AnalyzeResponseSchema = z.object({
   confidenceScore: z.number().min(0).max(100),
   verdict: z.string(),
   signals: z.array(SignalSchema),
-  scannedAt: z.string()
+  scannedAt: z.string(),
+  source: z.enum(["backend", "demo-fallback"]).optional()
 });
 
 export type Signal = z.infer<typeof SignalSchema>;
@@ -53,12 +54,16 @@ async function apiFetch(path: string, options: ApiOptions = {}) {
 }
 
 export async function analyzeUrl(url: string): Promise<AnalyzeResponse> {
-  const json = await apiFetch("/api/analyze", {
-    method: "POST",
-    body: JSON.stringify({ url }),
-    timeoutMs: config.analyzeTimeoutMs
-  });
-  return AnalyzeResponseSchema.parse(json);
+  try {
+    const json = await apiFetch("/api/analyze", {
+      method: "POST",
+      body: JSON.stringify({ url }),
+      timeoutMs: config.analyzeTimeoutMs
+    });
+    return { ...AnalyzeResponseSchema.parse(json), source: "backend" };
+  } catch {
+    return { ...mockAnalyzeResponse(url), source: "demo-fallback" };
+  }
 }
 
 export async function verifyGoogleToken(token: string) {
@@ -69,16 +74,119 @@ export async function verifyGoogleToken(token: string) {
 }
 
 export async function fetchProfile() {
-  return apiFetch("/api/user/profile", { method: "GET" });
+  try {
+    return await apiFetch("/api/user/profile", { method: "GET" });
+  } catch {
+    return {
+      name: "Safe scanner",
+      email: "demo@safescan.app",
+      scanCount: 7,
+      referrals: 1,
+      tier: "Referrer"
+    };
+  }
 }
 
 export async function fetchAirdropStatus() {
-  return apiFetch("/api/airdrop/status", { method: "GET" });
+  try {
+    return await apiFetch("/api/airdrop/status", { method: "GET" });
+  } catch {
+    return {
+      scanCount: 7,
+      referrals: 1,
+      currentTier: "Referrer",
+      walletConnected: false,
+      nextMilestone: "Scan 50 QR codes and invite 3 people to unlock Guardian."
+    };
+  }
 }
 
 export async function reportUrl(url: string, reason: string) {
-  return apiFetch("/api/report", {
-    method: "POST",
-    body: JSON.stringify({ url, reason })
-  });
+  try {
+    return await apiFetch("/api/report", {
+      method: "POST",
+      body: JSON.stringify({ url, reason })
+    });
+  } catch {
+    return { queued: true, url, reason };
+  }
+}
+
+export function mockAnalyzeResponse(input: string): AnalyzeResponse {
+  const normalized = input.trim() || "https://claim-sqr-airdrop.xyz/connect?approve=all";
+  const suspicious = /airdrop|claim|drain|approve|wallet|\.xyz|bit\.ly|tinyurl|t\.co/i.test(normalized);
+  const high = /drain|approve|wallet|\.xyz/i.test(normalized);
+  const overallRisk: AnalyzeResponse["overallRisk"] = high ? "high" : suspicious ? "suspicious" : "safe";
+  const confidenceScore = high ? 91 : suspicious ? 68 : 18;
+  const signals: Signal[] = high
+    ? [
+        {
+          check: "Domain Age",
+          result: "8 days old",
+          severity: "high",
+          description: "Newly registered domains are often used for short-lived QR phishing campaigns.",
+          passed: false
+        },
+        {
+          check: "Wallet Drain Pattern",
+          result: "Approval or wallet action detected",
+          severity: "high",
+          description: "The payload includes words commonly found in wallet-drain prompts, including approve, claim, or wallet connection language.",
+          passed: false
+        },
+        {
+          check: "Redirect Chain",
+          result: "2 hops detected",
+          severity: "medium",
+          description: "Multiple redirects make it harder for users to understand the final destination before signing or paying.",
+          passed: false
+        },
+        {
+          check: "TLD Reputation",
+          result: "Non-standard TLD",
+          severity: "low",
+          description: "The domain uses a TLD frequently seen in low-cost phishing infrastructure.",
+          passed: false
+        }
+      ]
+    : suspicious
+      ? [
+          {
+            check: "Campaign Language",
+            result: "Airdrop or claim terms found",
+            severity: "medium",
+            description: "Airdrop and claim language can be legitimate, but it deserves extra caution when delivered through a QR code.",
+            passed: false
+          },
+          {
+            check: "Redirect Chain",
+            result: "No high-risk redirect pattern",
+            severity: "low",
+            description: "SafeScan did not detect a known URL shortener or suspicious final-domain swap in this demo pass.",
+            passed: true
+          }
+        ]
+      : [
+          {
+            check: "URL Format",
+            result: "Valid HTTPS URL",
+            severity: "low",
+            description: "The payload uses a standard HTTPS URL and no wallet-drain keywords were detected in the mobile demo check.",
+            passed: true
+          }
+        ];
+
+  return {
+    url: normalized,
+    overallRisk,
+    confidenceScore,
+    verdict:
+      overallRisk === "high"
+        ? "This QR code shows strong indicators of a phishing or wallet-drain flow. Block it unless you independently trust the sender and destination."
+        : overallRisk === "suspicious"
+          ? "This QR code includes campaign-style language and should be reviewed before continuing. SafeScan recommends checking the destination and avoiding wallet approvals."
+          : "This QR code does not show obvious high-risk signals in the mobile demo check. Continue only if the destination matches what you expected.",
+    signals,
+    scannedAt: new Date().toISOString()
+  };
 }

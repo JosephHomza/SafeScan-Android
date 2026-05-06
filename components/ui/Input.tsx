@@ -7,11 +7,11 @@ export function Input(props: TextInputProps) {
       placeholderTextColor={theme.colors.muted}
       style={{
         minHeight: 48,
-        borderRadius: theme.radius.card,
+        borderRadius: 16,
         borderColor: theme.colors.border,
         borderWidth: 1,
         color: theme.colors.textPrimary,
-        backgroundColor: theme.colors.surface,
+        backgroundColor: "rgba(255, 255, 255, 0.05)",
         paddingHorizontal: 14
       }}
       {...props}

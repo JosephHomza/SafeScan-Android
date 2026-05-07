@@ -9,6 +9,7 @@ export function WalletConnect() {
 
   return (
     <Card style={{ gap: 10 }}>
+      <Text style={{ ...theme.typography.eyebrow, fontSize: 11 }}>step1</Text>
       <Text style={{ color: theme.colors.textPrimary, fontSize: 24, fontFamily: theme.fonts.sansSemiBold }}>Solana wallet</Text>
       <Text style={{ color: theme.colors.textSecondary, lineHeight: 22 }}>
         {connected ? "Demo wallet connected for airdrop eligibility preview." : "Connect a wallet later to associate your SQR airdrop eligibility with a Solana address."}

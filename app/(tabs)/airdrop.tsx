@@ -1,14 +1,18 @@
+import { useRouter } from "expo-router";
 import { ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TierCard } from "@/components/airdrop/TierCard";
 import { TokenInfoCard } from "@/components/airdrop/TokenInfoCard";
 import { WalletConnect } from "@/components/wallet/WalletConnect";
 import { ReferralCard } from "@/components/shared/ReferralCard";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { tiers } from "@/constants/tiers";
 import { theme } from "@/constants/theme";
 import { useScanStore } from "@/stores/scanStore";
 
 export default function AirdropScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const scanCount = useScanStore((state) => state.history.length);
   const referrals = 0;
@@ -50,6 +54,12 @@ export default function AirdropScreen() {
 
       <WalletConnect />
       <ReferralCard />
+      <Card style={{ gap: 10 }}>
+        <Text style={{ ...theme.typography.eyebrow, fontSize: 11 }}>step3</Text>
+        <Text style={{ color: theme.colors.textPrimary, fontSize: 24, fontFamily: theme.fonts.sansSemiBold }}>Scan QR</Text>
+        <Text style={{ color: theme.colors.textSecondary, lineHeight: 22 }}>Scan QR codes to build your airdrop progress.</Text>
+        <Button title="Scan QR" onPress={() => router.push("/(tabs)/scanner")} />
+      </Card>
 
       {tiers.map((tier) => (
         <TierCard key={tier.id} tier={tier} unlocked={scanCount >= tier.scanThreshold && referrals >= tier.referralThreshold} />

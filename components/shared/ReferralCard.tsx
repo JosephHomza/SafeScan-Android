@@ -11,6 +11,7 @@ export function ReferralCard() {
 
   return (
     <Card style={{ gap: 10 }}>
+      <Text style={{ ...theme.typography.eyebrow, fontSize: 11 }}>step2</Text>
       <Text style={{ color: theme.colors.textPrimary, fontSize: 24, fontFamily: theme.fonts.sansSemiBold }}>Referral link</Text>
       <Text style={{ color: theme.colors.textSecondary, lineHeight: 22 }}>Invite users and unlock SQR tier bonuses.</Text>
       <View style={{ borderColor: theme.colors.border, borderWidth: 1, borderRadius: 12, padding: 12 }}>

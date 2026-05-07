@@ -30,7 +30,7 @@ export default function AirdropScreen() {
         <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
           <View>
             <Text style={{ ...theme.typography.eyebrow, fontSize: 11 }}>CURRENT TIER</Text>
-            <Text style={{ color: theme.colors.textPrimary, fontSize: 24, fontFamily: theme.fonts.sansSemiBold, marginTop: 4 }}>{currentTier}</Text>
+            <Text style={{ color: theme.colors.textPrimary, fontSize: 18, fontWeight: "800", marginTop: 4 }}>{currentTier}</Text>
           </View>
           <View style={{ borderRadius: 999, borderWidth: 1, borderColor: "rgba(16, 185, 129, 0.35)", backgroundColor: "rgba(16, 185, 129, 0.12)", paddingHorizontal: 12, paddingVertical: 8, alignSelf: "flex-start" }}>
             <Text style={{ color: theme.colors.safe, fontFamily: theme.fonts.display, fontSize: 12 }}>Registered</Text>

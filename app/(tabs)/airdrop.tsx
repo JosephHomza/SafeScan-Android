@@ -1,79 +1,156 @@
-import { useEffect, useState } from "react";
-import { useRouter } from "expo-router";
-import { ScrollView, Text, View } from "react-native";
+import { useEffect } from "react";
+import { Feather } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Haptics from "expo-haptics";
+import * as Sharing from "expo-sharing";
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { TierCard } from "@/components/airdrop/TierCard";
-import { TokenInfoCard } from "@/components/airdrop/TokenInfoCard";
-import { WalletConnect } from "@/components/wallet/WalletConnect";
-import { ReferralCard } from "@/components/shared/ReferralCard";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { tiers } from "@/constants/tiers";
 import { theme } from "@/constants/theme";
-import { fetchAirdropStatus, type AirdropStatusResponse } from "@/services/api";
-import { useScanStore } from "@/stores/scanStore";
+import { useToast } from "@/components/shared/ToastProvider";
+import { useAirdropStore } from "@/stores/airdropStore";
 
-export default function AirdropScreen() {
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const localScanCount = useScanStore((state) => state.history.length);
-  const [airdropStatus, setAirdropStatus] = useState<AirdropStatusResponse | null>(null);
-  const scanCount = airdropStatus?.scanCount ?? localScanCount;
-  const referrals = airdropStatus?.referrals ?? 0;
-  const currentTier = airdropStatus?.currentTier ?? (scanCount >= 50 && referrals >= 3 ? "Guardian" : scanCount >= 5 && referrals >= 1 ? "Referrer" : scanCount >= 5 ? "Scanner" : "Pending");
+function ProgressBar({ progress }: { progress: number }) {
+  const width = useSharedValue(0);
 
   useEffect(() => {
-    fetchAirdropStatus().then(setAirdropStatus).catch(() => undefined);
-  }, []);
+    width.value = withTiming(Math.max(0, Math.min(100, progress)), { duration: 650 });
+  }, [progress, width]);
+
+  const style = useAnimatedStyle(() => ({
+    width: `${width.value}%`
+  }));
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: insets.top + 28, gap: 18, paddingBottom: Math.max(insets.bottom, 20) + 36 }}>
-      <View style={{ gap: 8 }}>
-        <Text style={{ ...theme.typography.eyebrow }}>COMMUNITY AIRDROP</Text>
-        <Text style={{ color: theme.colors.textPrimary, fontSize: 30, fontFamily: theme.fonts.sansSemiBold }}>Register for Airdrop</Text>
-        <Text style={{ color: theme.colors.textSecondary, lineHeight: 22 }}>
-          {airdropStatus?.nextMilestone ?? "Scan QR codes, invite users, and connect a wallet to prepare for SQR token eligibility."}
-        </Text>
+    <View className="h-3 overflow-hidden rounded-pill bg-border">
+      <Animated.View className="h-full rounded-pill bg-primary" style={style} />
+    </View>
+  );
+}
+
+function TierMiniCard({ tier, unlocked }: { tier: (typeof tiers)[number]; unlocked: boolean }) {
+  return (
+    <View className={`w-[48%] rounded-web border p-4 ${unlocked ? "border-primary bg-primaryDim" : "border-border bg-surface"}`}>
+      <View className="flex-row items-center justify-between">
+        <Text className="font-semibold text-xs uppercase tracking-widest text-accent">{tier.rank}</Text>
+        {unlocked ? <Feather name="check-circle" size={18} color={theme.colors.safe} /> : <Feather name="lock" size={18} color={theme.colors.textSecondary} />}
+      </View>
+      <Text className="mt-3 font-semibold text-lg text-textPrimary">{tier.name}</Text>
+      <Text className="mt-1 font-mono text-sm text-accent">{tier.reward}</Text>
+      <Text className="mt-3 font-ui text-xs leading-5 text-textSecondary">
+        {tier.scanThreshold} scans · {tier.referralThreshold} referrals
+      </Text>
+    </View>
+  );
+}
+
+export default function AirdropScreen() {
+  const insets = useSafeAreaInsets();
+  const { showToast } = useToast();
+  const { status, referral, isLoading, error, fetchStatus, claimReferral } = useAirdropStore();
+
+  useEffect(() => {
+    void fetchStatus();
+  }, [fetchStatus]);
+
+  const currentTierNumber = Math.max(1, Math.min(4, status?.tier ?? 1));
+  const currentTier = tiers.find((tier) => tier.tier === currentTierNumber) ?? tiers[0];
+  const totalScans = status?.totalScans ?? status?.scanCount ?? 0;
+  const nextTierAt = status?.nextTierAt ?? currentTier.scanThreshold;
+  const scansUntilNextTier = Math.max(0, nextTierAt - totalScans);
+  const progress = nextTierAt > 0 ? (totalScans / nextTierAt) * 100 : 100;
+  const referralCode = referral?.referralCode || referral?.code || status?.referralCode || "SQR";
+  const referralLink = referral?.referralLink || referral?.link || status?.referralLink || `https://safescan-qr.onrender.com/?ref=${referralCode}`;
+  const pendingRewards = referral?.pendingRewards ?? 0;
+  const totalReferrals = referral?.totalReferrals ?? referral?.referrals ?? status?.referrals ?? 0;
+
+  const copyReferralCode = async () => {
+    await Clipboard.setStringAsync(referralCode);
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    showToast("Referral code copied.", "success");
+  };
+
+  const shareReferralLink = async () => {
+    const report = `Join the SafeScan SQR airdrop: ${referralLink}`;
+    const uri = `${FileSystem.cacheDirectory}safescan-referral.txt`;
+    await FileSystem.writeAsStringAsync(uri, report);
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(uri, { mimeType: "text/plain", dialogTitle: "Share SafeScan referral" });
+    } else {
+      await Clipboard.setStringAsync(referralLink);
+    }
+    showToast("Referral link ready to share.", "success");
+  };
+
+  const claim = async () => {
+    const result = await claimReferral();
+    showToast(result.message, "info");
+  };
+
+  return (
+    <ScrollView
+      style={{ flex: 1, backgroundColor: theme.colors.background }}
+      contentContainerStyle={{ paddingHorizontal: 16, paddingTop: insets.top + 28, paddingBottom: Math.max(insets.bottom, 20) + 36, gap: 18 }}
+    >
+      <View className="gap-2">
+        <Text className="font-semibold text-xs uppercase tracking-widest text-accent">Community rewards</Text>
+        <Text className="font-semibold text-3xl text-textPrimary">SQR Airdrop</Text>
       </View>
 
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        {tiers.map((tier) => (
-          <TierCard key={tier.id} tier={tier} unlocked={scanCount >= tier.scanThreshold && referrals >= tier.referralThreshold} compact />
-        ))}
-      </View>
+      {isLoading ? <ActivityIndicator color={theme.colors.accent} /> : null}
+      {error ? <Text className="rounded-web border border-risk-danger-border bg-risk-danger-bg p-3 text-center font-ui text-risk-danger-text">{error}</Text> : null}
 
-      <TokenInfoCard />
-
-      <View style={{ borderWidth: 1, borderColor: "rgba(103, 242, 200, 0.2)", borderRadius: 18, backgroundColor: "rgba(255,255,255,0.035)", padding: 18, gap: 16 }}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
+      <View className="rounded-web border border-primaryDim bg-surfaceElevated p-5">
+        <View className="flex-row items-start justify-between gap-4">
           <View>
-            <Text style={{ ...theme.typography.eyebrow, fontSize: 11 }}>CURRENT TIER</Text>
-            <Text style={{ color: theme.colors.textPrimary, fontSize: 18, fontWeight: "800", marginTop: 4 }}>{currentTier}</Text>
+            <Text className="font-semibold text-xs uppercase tracking-widest text-accent">Current tier</Text>
+            <Text className="mt-2 font-mono text-6xl text-textPrimary">{currentTier.tier}</Text>
+            <Text className="font-semibold text-2xl text-textPrimary">{currentTier.name}</Text>
           </View>
-          <View style={{ borderRadius: 999, borderWidth: 1, borderColor: "rgba(16, 185, 129, 0.35)", backgroundColor: "rgba(16, 185, 129, 0.12)", paddingHorizontal: 12, paddingVertical: 8, alignSelf: "flex-start" }}>
-            <Text style={{ color: theme.colors.safe, fontFamily: theme.fonts.display, fontSize: 12 }}>Registered</Text>
+          <View className="rounded-web border border-primaryDim bg-primaryDim px-4 py-3">
+            <Text className="font-semibold text-xs uppercase tracking-widest text-accent">Reward</Text>
+            <Text className="mt-1 font-mono text-xl text-textPrimary">{currentTier.rewardSol} SOL</Text>
           </View>
         </View>
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          <View style={{ flex: 1, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 14, padding: 12 }}>
-            <Text style={{ color: theme.colors.textPrimary, fontSize: 22, fontFamily: theme.fonts.sansSemiBold }}>{scanCount}</Text>
-            <Text style={{ color: theme.colors.textSecondary }}>Scans</Text>
-          </View>
-          <View style={{ flex: 1, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 14, padding: 12 }}>
-            <Text style={{ color: theme.colors.textPrimary, fontSize: 22, fontFamily: theme.fonts.sansSemiBold }}>{referrals}</Text>
-            <Text style={{ color: theme.colors.textSecondary }}>Referrals</Text>
-          </View>
+
+        <View className="mt-6 gap-3">
+          <ProgressBar progress={progress} />
+          <Text className="font-ui text-sm text-textSecondary">{scansUntilNextTier} scans until next tier</Text>
         </View>
       </View>
 
-      <WalletConnect />
-      <ReferralCard />
-      <Card style={{ gap: 10 }}>
-        <Text style={{ ...theme.typography.eyebrow, fontSize: 11 }}>step3</Text>
-        <Text style={{ color: theme.colors.textPrimary, fontSize: 24, fontFamily: theme.fonts.sansSemiBold }}>Scan QR</Text>
-        <Text style={{ color: theme.colors.textSecondary, lineHeight: 22 }}>Scan QR codes to build your airdrop progress.</Text>
-        <Button title="Scan QR" onPress={() => router.push("/(tabs)/scanner")} />
-      </Card>
+      <View className="rounded-web border border-border bg-surface p-5">
+        <Text className="font-semibold text-xs uppercase tracking-widest text-accent">Referral</Text>
+        <Pressable accessibilityRole="button" onPress={copyReferralCode} className="mt-4 self-start rounded-pill border border-border bg-surfaceElevated px-4 py-3">
+          <Text className="font-mono text-base text-textPrimary">{referralCode}</Text>
+        </Pressable>
+        <View className="mt-5 flex-row gap-3">
+          <View className="flex-1 rounded-web border border-border p-3">
+            <Text className="font-mono text-2xl text-textPrimary">{totalReferrals}</Text>
+            <Text className="font-ui text-sm text-textSecondary">Total referrals</Text>
+          </View>
+          <View className="flex-1 rounded-web border border-border p-3">
+            <Text className="font-mono text-2xl text-textPrimary">{pendingRewards}</Text>
+            <Text className="font-ui text-sm text-textSecondary">Pending SOL</Text>
+          </View>
+        </View>
+        <View className="mt-5 gap-3">
+          <Button title="Share Referral Link" onPress={shareReferralLink} />
+          <Button title="Claim Referral" variant="secondary" onPress={claim} />
+        </View>
+      </View>
+
+      <View className="gap-3">
+        <Text className="font-semibold text-xs uppercase tracking-widest text-accent">All tiers</Text>
+        <View className="flex-row flex-wrap justify-between gap-y-3">
+          {tiers.map((tier) => (
+            <TierMiniCard key={tier.id} tier={tier} unlocked={currentTierNumber >= tier.tier} />
+          ))}
+        </View>
+      </View>
     </ScrollView>
   );
 }

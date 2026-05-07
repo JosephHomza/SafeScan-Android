@@ -7,6 +7,8 @@ import { Slot, usePathname, useRouter } from "expo-router";
 import * as Linking from "expo-linking";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { ServerWakeBanner } from "@/components/ServerWakeBanner";
 import { ToastProvider } from "@/components/shared/ToastProvider";
 import { colors } from "@/constants/theme";
@@ -17,8 +19,10 @@ const publicRoutes = ["/", "/auth/google", "/legal/privacy", "/legal/terms"];
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000,
-      retry: 2
+      retry: 2,
+      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
+      staleTime: 30_000,
+      gcTime: 300_000
     }
   }
 });
@@ -86,7 +90,10 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
   return (
     <>
       <StatusBar style="light" />
-      <Slot />
+      <ErrorBoundary key={pathname}>
+        <Slot />
+      </ErrorBoundary>
+      <OfflineBanner />
       <ServerWakeBanner />
     </>
   );

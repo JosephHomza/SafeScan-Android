@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/Button";
 import { RiskBreakdownPanel } from "@/components/risk/RiskBreakdownPanel";
 import { LoadingSteps } from "@/components/shared/LoadingSteps";
-import { ServerWakeBanner } from "@/components/shared/ServerWakeBanner";
 import { theme } from "@/constants/theme";
 import { useAnalyze } from "@/hooks/useAnalyze";
 import { reportUrl } from "@/services/api";
@@ -76,7 +75,6 @@ export function ScanDrawer({ payload, onClear }: { payload: string | null; onCle
         <Text style={{ color: theme.colors.textPrimary, fontSize: 20, fontWeight: "900" }}>QR decoded</Text>
         <Text style={{ color: theme.colors.textSecondary, lineHeight: 20 }}>{truncateMiddle(payload, 92)}</Text>
 
-        <ServerWakeBanner active={analyze.isPending} />
         <LoadingSteps active={analyze.isPending} />
         {analyze.isPending ? <ActivityIndicator color={theme.colors.accent} /> : null}
 

@@ -7,6 +7,7 @@ import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
 import { ActivityIndicator, View } from "react-native";
 import { useAuthStore } from "@/stores/authStore";
+import { ServerWakeBanner } from "@/components/ServerWakeBanner";
 import { ToastProvider } from "@/components/shared/ToastProvider";
 import { colors } from "@/constants/theme";
 
@@ -64,6 +65,7 @@ export default function RootLayout() {
           <ToastProvider>
             <StatusBar style="light" />
             <Slot />
+            <ServerWakeBanner />
           </ToastProvider>
         </QueryClientProvider>
       </SafeAreaProvider>

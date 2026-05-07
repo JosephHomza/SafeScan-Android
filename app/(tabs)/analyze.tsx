@@ -6,7 +6,6 @@ import { useAnalyze } from "@/hooks/useAnalyze";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { RiskBreakdownPanel } from "@/components/risk/RiskBreakdownPanel";
-import { ServerWakeBanner } from "@/components/shared/ServerWakeBanner";
 import { LoadingSteps } from "@/components/shared/LoadingSteps";
 import { theme } from "@/constants/theme";
 import { useScanStore } from "@/stores/scanStore";
@@ -69,7 +68,6 @@ export default function AnalyzeScreen() {
         ))}
       </View>
 
-      <ServerWakeBanner active={analyze.isPending} />
       <LoadingSteps active={analyze.isPending} />
       {analyze.isPending ? <ActivityIndicator color={theme.colors.accent} /> : null}
       {analyze.error ? <Text style={{ color: theme.colors.danger }}>{String(analyze.error.message ?? analyze.error)}</Text> : null}

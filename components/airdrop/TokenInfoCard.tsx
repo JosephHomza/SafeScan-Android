@@ -17,7 +17,7 @@ export function TokenInfoCard() {
       <Text style={{ ...typography.body, marginTop: 6 }}>Reward tiers and eligibility tracking for SafeScan QR users.</Text>
 
       <View style={{ marginTop: 16, borderWidth: 1, borderColor: colors.surfaceBorder, borderRadius: 8, backgroundColor: colors.surfaceElevated, padding: 12 }}>
-        <Text style={{ ...typography.label, marginBottom: 6 }}>CONTRACT ADDRESS</Text>
+        <Text style={{ ...typography.eyebrow, fontSize: 11, marginBottom: 6 }}>CONTRACT ADDRESS</Text>
         <Text style={{ ...typography.mono, fontFamily: fonts.mono }}>{`${tokenAddress.slice(0, 8)}...${tokenAddress.slice(-8)}`}</Text>
       </View>
 
@@ -32,7 +32,7 @@ export function TokenInfoCard() {
           marginTop: 12,
           borderWidth: 1,
           borderColor: colors.primary,
-          borderRadius: 999,
+          borderRadius: 8,
           paddingVertical: 12,
           alignItems: "center",
           flexDirection: "row",
@@ -41,7 +41,7 @@ export function TokenInfoCard() {
         })}
       >
         <Feather name="copy" size={16} color={colors.primary} style={{ marginRight: 8 }} />
-        <Text style={{ color: colors.primary, fontFamily: fonts.sansSemiBold }}>{copied ? "Copied!" : "Copy Contract"}</Text>
+        <Text style={{ color: colors.primary, fontFamily: fonts.display, fontSize: 13 }}>{copied ? "Copied!" : "Copy Contract"}</Text>
       </Pressable>
     </Card>
   );

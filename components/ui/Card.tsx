@@ -1,20 +1,16 @@
 import { View, type ViewProps } from "react-native";
 import { theme } from "@/constants/theme";
 
-export function Card({ style, ...props }: ViewProps) {
+type CardProps = ViewProps & {
+  className?: string;
+  elevated?: boolean;
+};
+
+export function Card({ className = "", elevated = false, style, ...props }: CardProps) {
   return (
     <View
-      style={[
-        {
-          backgroundColor: theme.colors.surface,
-          borderColor: theme.colors.border,
-          borderWidth: 1,
-          borderRadius: theme.radius.card,
-          padding: theme.spacing.card,
-          ...theme.shadows.cardSubtle
-        },
-        style
-      ]}
+      className={`rounded-web border border-border bg-surface p-[22px] ${className}`}
+      style={[elevated ? theme.shadows.panel : theme.shadows.cardSubtle, style]}
       {...props}
     />
   );

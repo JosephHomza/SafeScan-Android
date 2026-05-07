@@ -31,16 +31,17 @@ export default function AnalyzeScreen() {
   ];
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: insets.top + 22, gap: 16, paddingBottom: Math.max(insets.bottom, 20) + 36 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: insets.top + 28, gap: 18, paddingBottom: Math.max(insets.bottom, 20) + 36 }}>
       <View style={{ gap: 8 }}>
-        <Text style={{ color: theme.colors.accent, fontSize: 12, fontWeight: "900", letterSpacing: 1.8 }}>INTERACTIVE DEMO</Text>
-        <Text style={{ color: theme.colors.textPrimary, fontSize: 30, fontWeight: "900" }}>Analyze Payload</Text>
+        <Text style={{ ...theme.typography.eyebrow }}>INTERACTIVE DEMO</Text>
+        <Text style={{ color: theme.colors.textPrimary, fontSize: 30, fontFamily: theme.fonts.sansSemiBold }}>Analyze Payload</Text>
         <Text style={{ color: theme.colors.textSecondary, lineHeight: 22 }}>
           Paste a QR destination, wallet link, or payment URL. SafeScan checks the payload before anything opens.
         </Text>
       </View>
 
-      <View style={{ borderWidth: 1, borderColor: theme.colors.border, borderRadius: 8, backgroundColor: theme.colors.surfaceElevated, padding: 16, gap: 12 }}>
+      <View style={{ borderWidth: 1, borderColor: theme.colors.border, borderRadius: 8, backgroundColor: theme.colors.surfaceElevated, padding: 22, gap: 14 }}>
+        <Text style={{ color: theme.colors.textPrimary, fontFamily: theme.fonts.sansSemiBold }}>Or paste a URL manually</Text>
         <Input value={url} onChangeText={setUrl} placeholder="https://example.com" autoCapitalize="none" keyboardType="url" />
         <View style={{ flexDirection: "row", gap: 10 }}>
           <View style={{ flex: 1 }}>
@@ -52,18 +53,18 @@ export default function AnalyzeScreen() {
               const pasted = await Clipboard.getStringAsync();
               setUrl(pasted);
             }}
-            style={{ minWidth: 82, borderColor: theme.colors.border, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center" }}
+            style={{ minWidth: 82, borderColor: theme.colors.border, borderWidth: 1, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.04)" }}
           >
-            <Text style={{ color: theme.colors.textPrimary, fontWeight: "800" }}>Paste</Text>
+            <Text style={{ color: theme.colors.textPrimary, fontFamily: theme.fonts.sansSemiBold }}>Paste</Text>
           </Pressable>
         </View>
       </View>
 
       <View style={{ gap: 10 }}>
-        <Text style={{ color: theme.colors.accent, fontSize: 12, fontWeight: "900", letterSpacing: 1.6 }}>SAMPLE PAYLOADS</Text>
+        <Text style={{ ...theme.typography.eyebrow, fontSize: 11 }}>SAMPLE PAYLOADS</Text>
         {samples.map((sample) => (
-          <Pressable key={sample} onPress={() => { setUrl(sample); submit(sample); }} style={{ borderColor: theme.colors.border, borderWidth: 1, borderRadius: 12, padding: 12, backgroundColor: "rgba(255,255,255,0.03)" }}>
-            <Text style={{ color: theme.colors.textSecondary }}>{sample}</Text>
+          <Pressable key={sample} onPress={() => { setUrl(sample); submit(sample); }} style={{ borderColor: theme.colors.border, borderWidth: 1, borderRadius: 8, padding: 12, backgroundColor: "rgba(255,255,255,0.05)" }}>
+            <Text style={{ color: theme.colors.textSecondary, fontFamily: theme.fonts.mono }}>{sample}</Text>
           </Pressable>
         ))}
       </View>

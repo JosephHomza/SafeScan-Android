@@ -2,29 +2,33 @@ import { useEffect } from "react";
 import { Text, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import Animated, { useAnimatedProps, useSharedValue, withTiming } from "react-native-reanimated";
-import { colors, fonts, typography } from "@/constants/theme";
+import { colors, fonts, theme, typography } from "@/constants/theme";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-const SIZE = 140;
-const RADIUS = 54;
+const SIZE = 112;
+const CENTER = SIZE / 2;
+const RADIUS = 46;
 const STROKE_WIDTH = 10;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-function scoreColor(score: number) {
-  if (score > 70) return colors.danger;
-  if (score > 40) return colors.suspicious;
-  return colors.safe;
+type RiskTone = "safe" | "warn" | "danger";
+
+function scoreTone(score: number): RiskTone {
+  if (score > 70) return "danger";
+  if (score > 40) return "warn";
+  return "safe";
 }
 
 function scoreLabel(score: number) {
-  if (score > 70) return "HIGH RISK";
-  if (score > 40) return "SUSPICIOUS";
+  if (score > 70) return "DANGEROUS";
+  if (score > 40) return "CAUTION";
   return "SAFE";
 }
 
-export function RiskGauge({ score }: { score: number }) {
+export function RiskGauge({ score, verdict }: { score: number; verdict?: string }) {
   const strokeDashoffset = useSharedValue(CIRCUMFERENCE);
-  const strokeColor = scoreColor(score);
+  const tone = scoreTone(score);
+  const riskColors = colors.risk[tone];
 
   useEffect(() => {
     strokeDashoffset.value = withTiming(CIRCUMFERENCE - (score / 100) * CIRCUMFERENCE, { duration: 1000 });
@@ -35,27 +39,51 @@ export function RiskGauge({ score }: { score: number }) {
   }));
 
   return (
-    <View accessibilityLabel={`Risk score: ${score} out of 100. Verdict: ${scoreLabel(score)}`} style={{ alignItems: "center", marginBottom: 4 }}>
-      <View style={{ width: SIZE, height: SIZE, alignItems: "center", justifyContent: "center" }}>
+    <View
+      accessibilityLabel={`Risk score: ${score} out of 100. Verdict: ${verdict ?? scoreLabel(score)}`}
+      className="items-center"
+    >
+      <View
+        className="items-center justify-center rounded-pill"
+        style={{
+          width: SIZE,
+          height: SIZE,
+          shadowColor: riskColors.indicatorBg,
+          shadowOpacity: 0.24,
+          shadowRadius: 46,
+          elevation: 6
+        }}
+      >
         <Svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} style={{ position: "absolute" }}>
-          <Circle cx={70} cy={70} r={RADIUS} stroke={colors.surfaceBorder} strokeWidth={STROKE_WIDTH} fill="none" />
-          <AnimatedCircle
-            cx={70}
-            cy={70}
+          <Circle
+            cx={CENTER}
+            cy={CENTER}
             r={RADIUS}
-            stroke={strokeColor}
+            stroke={colors.risk.card.gaugeTrack}
+            strokeWidth={STROKE_WIDTH}
+            fill={colors.risk.card.gaugeInnerBg}
+          />
+          <AnimatedCircle
+            cx={CENTER}
+            cy={CENTER}
+            r={RADIUS}
+            stroke={riskColors.text}
             strokeWidth={STROKE_WIDTH}
             fill="none"
             strokeDasharray={CIRCUMFERENCE}
             animatedProps={animatedProps}
             strokeLinecap="round"
-            transform="rotate(-90 70 70)"
+            transform={`rotate(-90 ${CENTER} ${CENTER})`}
           />
         </Svg>
-        <Text style={{ fontSize: 32, fontFamily: fonts.sansSemiBold, color: strokeColor }}>{score}</Text>
-        <Text style={{ ...typography.label, color: colors.textMuted }}>Risk Score</Text>
+        <Text style={{ fontSize: theme.fontSizes.scoreGauge, fontFamily: fonts.sansSemiBold, color: riskColors.text }}>
+          {score}
+        </Text>
       </View>
-      <Text style={{ ...typography.h3, color: strokeColor, marginTop: 12 }}>{scoreLabel(score)}</Text>
+      <Text style={{ ...typography.h3, color: riskColors.text, marginTop: 12 }}>
+        {verdict ?? scoreLabel(score)}
+      </Text>
+      <Text style={{ ...typography.label, color: colors.textMuted, marginTop: 4 }}>Risk Score</Text>
     </View>
   );
 }

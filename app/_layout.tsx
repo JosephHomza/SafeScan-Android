@@ -3,9 +3,12 @@ import { Slot, useRouter, useSegments } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
+import { ActivityIndicator, View } from "react-native";
 import { useAuthStore } from "@/stores/authStore";
 import { ToastProvider } from "@/components/shared/ToastProvider";
+import { colors } from "@/constants/theme";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,6 +23,18 @@ export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
   const { hydrate, isLoading, isAuthenticated } = useAuthStore();
+  const [fontsLoaded] = useFonts({
+    "Inter-Regular": require("../assets/fonts/Inter-Regular.ttf"),
+    "Inter-Medium": require("../assets/fonts/Inter-Medium.ttf"),
+    "Inter-SemiBold": require("../assets/fonts/Inter-SemiBold.ttf"),
+    "Orbitron-Regular": require("../assets/fonts/Orbitron-Regular.ttf"),
+    "Orbitron-Bold": require("../assets/fonts/Orbitron-Bold.ttf"),
+    "Orbitron-Black": require("../assets/fonts/Orbitron-Black.ttf"),
+    "SpaceGrotesk-Regular": require("../assets/fonts/SpaceGrotesk-Regular.ttf"),
+    "SpaceGrotesk-Medium": require("../assets/fonts/SpaceGrotesk-Medium.ttf"),
+    "SpaceGrotesk-SemiBold": require("../assets/fonts/SpaceGrotesk-SemiBold.ttf"),
+    "SpaceMono-Regular": require("../assets/fonts/SpaceMono-Regular.ttf")
+  });
 
   useEffect(() => {
     hydrate();
@@ -31,6 +46,14 @@ export default function RootLayout() {
     if (inTabs && !isAuthenticated()) router.replace("/auth/google");
     if (!inTabs && isAuthenticated() && segments[0] !== "scan-result") router.replace("/(tabs)/scanner");
   }, [isLoading, isAuthenticated, router, segments]);
+
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background }}>
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

@@ -1,38 +1,47 @@
 import { Pressable, Text, type PressableProps, type StyleProp, type ViewStyle } from "react-native";
 import { theme } from "@/constants/theme";
 
+type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+
 type ButtonProps = PressableProps & {
   title: string;
-  variant?: "primary" | "secondary" | "ghost";
+  variant?: ButtonVariant;
+  className?: string;
 };
 
-export function Button({ title, variant = "primary", disabled, style, ...props }: ButtonProps) {
-  const backgroundColor = variant === "primary" ? theme.colors.primary : "transparent";
-  const borderColor = variant === "primary" ? theme.colors.primary : variant === "secondary" ? theme.colors.primary : theme.colors.border;
-  const textColor = variant === "primary" ? theme.colors.textPrimary : theme.colors.primary;
+const buttonClasses: Record<ButtonVariant, string> = {
+  primary: "bg-primary border-primary",
+  secondary: "bg-transparent border-border",
+  ghost: "bg-transparent border-transparent",
+  danger: "bg-risk-danger-bg border-risk-danger-border"
+};
 
+const textClasses: Record<ButtonVariant, string> = {
+  primary: "text-[#041019]",
+  secondary: "text-textPrimary",
+  ghost: "text-primary",
+  danger: "text-risk-danger-text"
+};
+
+export function Button({ title, variant = "primary", disabled, className = "", style, ...props }: ButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
       disabled={disabled}
+      className={`min-h-[44px] items-center justify-center rounded-web border px-5 py-3 ${buttonClasses[variant]} ${className}`}
       style={(state) => [
         {
-          minHeight: 48,
-          borderRadius: theme.radius.pill,
-          alignItems: "center",
-          justifyContent: "center",
-          paddingHorizontal: 24,
-          backgroundColor,
-          borderWidth: 1,
-          borderColor,
           opacity: disabled ? 0.5 : 1,
-          transform: [{ scale: state.pressed ? 0.97 : 1 }]
+          transform: [{ translateY: state.pressed ? -1 : 0 }, { scale: state.pressed ? 0.98 : 1 }]
         },
+        variant === "primary" ? { elevation: 3, shadowColor: theme.colors.primaryStrong, shadowOpacity: 0.18, shadowRadius: 18 } : null,
         typeof style === "function" ? style(state) : (style as StyleProp<ViewStyle>)
       ]}
       {...props}
     >
-      <Text style={{ color: textColor, fontFamily: theme.fonts.sansSemiBold, fontSize: 15 }}>{title}</Text>
+      <Text className={`font-display text-button ${textClasses[variant]}`} style={{ fontFamily: theme.fonts.display }}>
+        {title}
+      </Text>
     </Pressable>
   );
 }

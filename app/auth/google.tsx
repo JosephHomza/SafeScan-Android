@@ -22,13 +22,19 @@ export default function GoogleAuthScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: "center", paddingHorizontal: 16, paddingTop: insets.top + 24, paddingBottom: Math.max(insets.bottom, 16) + 16, gap: 16 }}>
-      <Text style={{ color: theme.colors.textPrimary, fontSize: 34, fontWeight: "900" }}>Continue to SafeScan</Text>
-      <Text style={{ color: theme.colors.textSecondary, lineHeight: 22 }}>
-        Use demo mode in Expo Go to preview the full SafeScan QR mobile flow. Google OAuth can be connected once the Android client ID is configured.
-      </Text>
-      <GoogleSignInButton onPress={startDemo} />
-      <Button title="Use Demo Mode" variant="secondary" onPress={startDemo} />
+    <View style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: "center", paddingHorizontal: 16, paddingTop: insets.top + 28, paddingBottom: Math.max(insets.bottom, 16) + 16 }}>
+      <View style={{ borderWidth: 1, borderColor: theme.colors.border, borderRadius: 8, backgroundColor: theme.colors.surface, padding: 22, gap: 16, ...theme.shadows.panel }}>
+        <Text style={{ color: theme.colors.accent, fontSize: 12, fontFamily: theme.fonts.sansSemiBold, letterSpacing: 1.8 }}>SAFESCAN QR</Text>
+        <Text style={{ color: theme.colors.textPrimary, fontSize: 34, fontFamily: theme.fonts.sansSemiBold, lineHeight: 38 }}>Continue to SafeScan</Text>
+        <Text style={{ color: theme.colors.textSecondary, lineHeight: 22 }}>
+          Use demo mode in Expo Go to preview the full SafeScan QR mobile flow. Google OAuth can be connected once the Android client ID is configured.
+        </Text>
+        <GoogleSignInButton onPress={startDemo} />
+        <Text style={{ color: theme.colors.textSecondary, fontSize: 12, lineHeight: 18 }}>
+          By signing up, you agree to SafeScan's Terms and Privacy Policy.
+        </Text>
+        <Button title="Use Demo Mode" variant="secondary" onPress={startDemo} />
+      </View>
     </View>
   );
 }

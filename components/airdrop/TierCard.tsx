@@ -23,11 +23,11 @@ export function TierCard({ tier, unlocked }: { tier: Tier; unlocked: boolean }) 
           <Feather name="lock" size={54} color={colors.textPrimary} />
         </View>
       ) : null}
-      <Text style={{ ...typography.label, color: colors.primaryLight, letterSpacing: 1.2 }}>{tier.rank.toUpperCase()}</Text>
+      <Text style={{ ...typography.tierRank }}>{tier.rank.toUpperCase()}</Text>
       <Text style={{ ...typography.h3, fontSize: 22, marginTop: 8 }}>{tier.name}</Text>
       <Text style={{ ...typography.body, marginTop: 8 }}>Scan {tier.scanThreshold} QR codes and invite {tier.referralThreshold} user{tier.referralThreshold === 1 ? "" : "s"}.</Text>
-      <View style={{ alignSelf: "flex-start", marginTop: "auto", borderRadius: 999, backgroundColor: colors.primaryDim, borderWidth: 1, borderColor: colors.primary, paddingHorizontal: 10, paddingVertical: 6 }}>
-        <Text style={{ ...typography.badge, color: colors.primaryLight }}>{tier.reward.toUpperCase()}</Text>
+      <View style={{ alignSelf: "flex-start", marginTop: "auto", borderRadius: 999, backgroundColor: colors.primaryDim, borderWidth: 1, borderColor: colors.primary, paddingHorizontal: 12, paddingVertical: 9 }}>
+        <Text style={{ ...typography.tierReward }}>{tier.reward.toUpperCase()}</Text>
       </View>
     </Card>
   );

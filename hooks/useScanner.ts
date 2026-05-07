@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Haptics from "expo-haptics";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { api } from "@/services/api";
 import { useScanStore } from "@/stores/scanStore";
@@ -26,12 +26,15 @@ export function useScanner(): {
   const [permission, requestPermission] = useCameraPermissions();
   const [error, setError] = useState<string | null>(null);
   const addScan = useScanStore((state) => state.addScan);
+  const queryClient = useQueryClient();
 
   const analyzeMutation = useMutation({
     mutationFn: (payload: string) => api.scan.analyze(payload),
     onSuccess: (result) => {
       const scanId = result.scanId || `${Date.now()}`;
-      addScan({ ...result, scanId, id: scanId });
+      const scan = { ...result, scanId, id: scanId };
+      queryClient.setQueryData(["scan-result", scanId], scan);
+      addScan(scan);
       router.push({ pathname: "/scan-result/[id]", params: { id: scanId } });
     },
     onError: (mutationError) => {

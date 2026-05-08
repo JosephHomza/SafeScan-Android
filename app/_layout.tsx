@@ -48,12 +48,17 @@ function pathFromDeepLink(url: string) {
   return null;
 }
 
+function normalizeRoutePath(path: string) {
+  return path.replace(/^\/\(tabs\)/, "");
+}
+
 function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const incomingUrl = Linking.useURL();
   const appRootUrl = useMemo(() => Linking.createURL("/"), []);
   const lastHandledUrl = useRef<string | null>(null);
+  const lastRedirect = useRef<{ from: string; target: string } | null>(null);
   const hydrateFromStorage = useAuthStore((state) => state.hydrateFromStorage);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isLoading = useAuthStore((state) => state.isLoading);
@@ -74,24 +79,36 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
   useEffect(() => {
     if (isLoading || !fontsLoaded) return;
 
+    const redirect = (target: string) => {
+      if (normalizeRoutePath(pathname) === normalizeRoutePath(target)) {
+        lastRedirect.current = null;
+        return;
+      }
+      if (lastRedirect.current?.from === pathname && lastRedirect.current.target === target) return;
+      lastRedirect.current = { from: pathname, target };
+      router.replace(target);
+    };
+
+    if (lastRedirect.current && normalizeRoutePath(pathname) === normalizeRoutePath(lastRedirect.current.target)) lastRedirect.current = null;
+
     if (!isAuthenticated && pathname === "/") {
-      router.replace("/auth/google");
+      redirect("/auth/google");
       return;
     }
 
     if (isAuthenticated && pathname === "/") {
-      router.replace("/(tabs)/scanner");
+      redirect("/(tabs)/scanner");
       return;
     }
 
     const isPublicRoute = publicRoutes.includes(pathname);
     if (!isAuthenticated && !isPublicRoute) {
-      router.replace("/auth/google");
+      redirect("/auth/google");
       return;
     }
 
     if (isAuthenticated && pathname === "/auth/google") {
-      router.replace("/(tabs)/scanner");
+      redirect("/(tabs)/scanner");
     }
   }, [fontsLoaded, isAuthenticated, isLoading, pathname, router]);
 

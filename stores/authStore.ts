@@ -16,6 +16,7 @@ type AuthState = {
 
 type AuthStore = AuthState & {
   loginWithGoogle: (idToken: string) => Promise<void>;
+  continueAsDemoUser: () => void;
   logout: () => Promise<void>;
   hydrateFromStorage: () => Promise<void>;
   setUser: (user: User) => void;
@@ -36,6 +37,23 @@ function normalizeUser(user: User): User {
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
   ...initialState,
+  continueAsDemoUser: () => {
+    clearApiTokens();
+    set({
+      user: normalizeUser({
+        id: "demo-user",
+        email: "demo@safescan.local",
+        name: "SafeScan Demo",
+        avatarUrl: undefined,
+        createdAt: new Date().toISOString(),
+        role: "user"
+      }),
+      walletAddress: null,
+      isAuthenticated: true,
+      isLoading: false,
+      error: null
+    });
+  },
   loginWithGoogle: async (idToken) => {
     set({ isLoading: true, error: null });
     try {
@@ -64,12 +82,18 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
   },
   logout: async () => {
-    clearApiTokens();
-    await Promise.all([
-      SecureStore.deleteItemAsync(AUTH_TOKEN_KEY),
-      SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY)
-    ]);
-    set({ ...initialState, isLoading: false });
+    try {
+      await api.auth.logout();
+    } catch {
+      // Local sign-out must still work when the backend is unreachable.
+    } finally {
+      clearApiTokens();
+      await Promise.all([
+        SecureStore.deleteItemAsync(AUTH_TOKEN_KEY),
+        SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY)
+      ]);
+      set({ ...initialState, isLoading: false });
+    }
   },
   hydrateFromStorage: async () => {
     set({ isLoading: true, error: null });

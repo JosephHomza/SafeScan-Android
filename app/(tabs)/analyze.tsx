@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { FlashList } from "@shopify/flash-list";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
@@ -8,6 +8,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withSequence, w
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "@/constants/theme";
 import { api, type AnalyzeResult, type ScanHistoryItem } from "@/services/api";
+import { useScanStore, type ScanRecord } from "@/stores/scanStore";
 import { truncateMiddle } from "@/utils/url";
 
 const verdictStyles: Record<string, { badge: string; text: string; label: string }> = {
@@ -16,14 +17,27 @@ const verdictStyles: Record<string, { badge: string; text: string; label: string
   danger: { badge: "border-risk-danger-border bg-risk-danger-bg", text: "text-risk-danger-text", label: "DANGER" }
 };
 
-function historyItemToAnalyzeResult(item: ScanHistoryItem): AnalyzeResult {
-  const verdict = item.verdict === "safe" || item.verdict === "warn" || item.verdict === "danger"
-    ? item.verdict
-    : item.riskScore >= 80
-      ? "danger"
-      : item.riskScore >= 40
-        ? "warn"
-        : "safe";
+type HistoryEntry = {
+  scanId: string;
+  url: string;
+  riskScore: number;
+  verdict: AnalyzeResult["verdict"];
+  verdictText?: string;
+  signals: AnalyzeResult["signals"];
+  analyzedAt: string;
+  scannedAt: string;
+  source: AnalyzeResult["source"];
+};
+
+function normalizeVerdict(verdict: string | undefined, riskScore: number): AnalyzeResult["verdict"] {
+  if (verdict === "safe" || verdict === "warn" || verdict === "danger") return verdict;
+  if (riskScore >= 80) return "danger";
+  if (riskScore >= 40) return "warn";
+  return "safe";
+}
+
+function historyItemToEntry(item: ScanHistoryItem): HistoryEntry {
+  const verdict = normalizeVerdict(item.verdict, item.riskScore);
 
   return {
     scanId: item.scanId,
@@ -33,13 +47,41 @@ function historyItemToAnalyzeResult(item: ScanHistoryItem): AnalyzeResult {
     verdictText: verdictStyles[verdict].label,
     signals: item.signals,
     analyzedAt: item.analyzedAt,
-    overallRisk: verdict === "danger" ? "high" : verdict === "warn" ? "suspicious" : "safe",
+    scannedAt: item.scannedAt,
+    source: "backend"
+  };
+}
+
+function scanRecordToEntry(scan: ScanRecord): HistoryEntry {
+  return {
+    scanId: scan.scanId,
+    url: scan.url,
+    riskScore: scan.riskScore,
+    verdict: scan.verdict,
+    verdictText: scan.verdictText,
+    signals: scan.signals,
+    analyzedAt: scan.analyzedAt,
+    scannedAt: scan.scannedAt,
+    source: scan.source
+  };
+}
+
+function historyEntryToAnalyzeResult(item: HistoryEntry): AnalyzeResult {
+  return {
+    scanId: item.scanId,
+    url: item.url,
+    riskScore: item.riskScore,
+    verdict: item.verdict,
+    verdictText: item.verdictText ?? verdictStyles[item.verdict].label,
+    signals: item.signals,
+    analyzedAt: item.analyzedAt,
+    overallRisk: item.verdict === "danger" ? "high" : item.verdict === "warn" ? "suspicious" : "safe",
     confidenceScore: item.riskScore,
     scannedAt: item.scannedAt,
     counted: undefined,
     scanCount: undefined,
     payloadType: undefined,
-    source: "backend"
+    source: item.source
   };
 }
 
@@ -77,10 +119,21 @@ export default function AnalyzeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const localHistory = useScanStore((state) => state.history);
   const historyQuery = useQuery({
     queryKey: ["scan", "history"],
     queryFn: () => api.scan.history()
   });
+
+  const historyEntries = useMemo(() => {
+    const remoteEntries = (historyQuery.data ?? []).map(historyItemToEntry);
+    const seenScanIds = new Set(remoteEntries.map((item) => item.scanId));
+    const localEntries = localHistory.map(scanRecordToEntry).filter((item) => !seenScanIds.has(item.scanId));
+
+    return [...localEntries, ...remoteEntries].sort(
+      (left, right) => new Date(right.analyzedAt).getTime() - new Date(left.analyzedAt).getTime()
+    );
+  }, [historyQuery.data, localHistory]);
 
   useFocusEffect(
     useCallback(() => {
@@ -88,14 +141,14 @@ export default function AnalyzeScreen() {
     }, [historyQuery.refetch])
   );
 
-  const openResult = (item: ScanHistoryItem) => {
-    const result = historyItemToAnalyzeResult(item);
+  const openResult = (item: HistoryEntry) => {
+    const result = historyEntryToAnalyzeResult(item);
     queryClient.setQueryData(["scan-result", result.scanId], result);
     router.push({ pathname: "/scan-result/[id]", params: { id: result.scanId } });
   };
 
-  const renderItem = ({ item }: { item: ScanHistoryItem }) => {
-    const result = historyItemToAnalyzeResult(item);
+  const renderItem = ({ item }: { item: HistoryEntry }) => {
+    const result = historyEntryToAnalyzeResult(item);
     const relativeTime = formatDistanceToNow(new Date(result.analyzedAt), { addSuffix: true });
 
     return (
@@ -125,7 +178,7 @@ export default function AnalyzeScreen() {
         <Text className="mt-2 font-semibold text-3xl text-textPrimary">Scan History</Text>
       </View>
 
-      {historyQuery.isPending ? (
+      {historyQuery.isPending && historyEntries.length === 0 ? (
         <View className="gap-3 px-4">
           <SkeletonRow />
           <SkeletonRow />
@@ -133,7 +186,7 @@ export default function AnalyzeScreen() {
         </View>
       ) : (
         <FlashList
-          data={historyQuery.data ?? []}
+          data={historyEntries}
           renderItem={renderItem}
           keyExtractor={(item) => item.scanId}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: Math.max(insets.bottom, 20) + 28 }}
@@ -147,7 +200,7 @@ export default function AnalyzeScreen() {
         />
       )}
 
-      {historyQuery.error ? (
+      {historyQuery.error && historyEntries.length === 0 ? (
         <Text className="px-4 pt-4 text-center font-ui text-danger">
           {historyQuery.error instanceof Error ? historyQuery.error.message : "Could not load scan history."}
         </Text>

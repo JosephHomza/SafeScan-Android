@@ -2,6 +2,7 @@ node_modules/
 android/
 .expo/
 .expo-*-check*/
+.expo-run-logs/
 dist/
 build/
 *.jks

@@ -26,9 +26,22 @@ function truncateMiddle(value: string, visible = 6) {
 }
 
 function StatCard({ value, label }: { value: string | number; label: string }) {
+  const isLongText = typeof value === "string" && value.length > 5;
+
   return (
     <View style={{ flex: 1, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 8, padding: 12, backgroundColor: theme.colors.surface }}>
-      <Text style={{ color: theme.colors.textPrimary, fontSize: 20, fontFamily: theme.fonts.display }}>{value}</Text>
+      <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.65}
+        style={{
+          color: theme.colors.textPrimary,
+          fontSize: isLongText ? 18 : 20,
+          fontFamily: isLongText ? theme.fonts.sansSemiBold : theme.fonts.display
+        }}
+      >
+        {value}
+      </Text>
       <Text style={{ color: theme.colors.textSecondary, marginTop: 4, fontFamily: theme.fonts.sans }}>{label}</Text>
     </View>
   );
@@ -103,7 +116,7 @@ export default function ProfileScreen() {
     setIsSigningOut(true);
     try {
       await logout();
-      router.replace("/");
+      router.replace("/auth/google");
     } finally {
       setIsSigningOut(false);
     }
@@ -120,7 +133,7 @@ export default function ProfileScreen() {
           try {
             await api.user.delete();
             await logout();
-            router.replace("/");
+            router.replace("/auth/google");
           } catch (error) {
             Alert.alert("Delete failed", error instanceof Error ? error.message : "Could not delete your account.");
           } finally {

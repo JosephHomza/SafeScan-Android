@@ -3,7 +3,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Haptics from "expo-haptics";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { api } from "@/services/api";
+import { analyzeUrl } from "@/services/api";
 import { useScanStore } from "@/stores/scanStore";
 
 const REPEAT_SCAN_WINDOW_MS = 3000;
@@ -29,7 +29,7 @@ export function useScanner(): {
   const queryClient = useQueryClient();
 
   const analyzeMutation = useMutation({
-    mutationFn: (payload: string) => api.scan.analyze(payload),
+    mutationFn: (payload: string) => analyzeUrl(payload),
     onSuccess: (result) => {
       const scanId = result.scanId || `${Date.now()}`;
       const scan = { ...result, scanId, id: scanId };

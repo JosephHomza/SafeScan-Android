@@ -13,6 +13,7 @@ import { SignalRow } from "@/components/SignalRow";
 import { Button } from "@/components/ui/Button";
 import { theme } from "@/constants/theme";
 import { api, type AnalyzeResult, type ScanHistoryItem } from "@/services/api";
+import { useScanStore } from "@/stores/scanStore";
 import { truncateMiddle } from "@/utils/url";
 
 const verdictLabels: Record<AnalyzeResult["verdict"], string> = {
@@ -76,11 +77,12 @@ export default function ScanResultScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const cachedResult = queryClient.getQueryData<AnalyzeResult>(["scan-result", scanId]);
+  const localResult = useScanStore((state) => state.history.find((scan) => scan.scanId === scanId || scan.id === scanId));
   const [actionMessage, setActionMessage] = useState("");
 
   const historyQuery = useQuery({
     queryKey: ["scan-history-result", scanId],
-    enabled: Boolean(scanId && !cachedResult),
+    enabled: Boolean(scanId && !cachedResult && !localResult),
     queryFn: async () => {
       const history = await api.scan.history();
       const match = history.find((item) => item.scanId === scanId || item.id === scanId);
@@ -89,7 +91,7 @@ export default function ScanResultScreen() {
     }
   });
 
-  const result = cachedResult ?? historyQuery.data;
+  const result = cachedResult ?? localResult ?? historyQuery.data;
   const reportText = useMemo(() => (result ? formatReport(result) : ""), [result]);
 
   const shareReport = async () => {

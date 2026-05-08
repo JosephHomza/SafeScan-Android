@@ -39,10 +39,8 @@ function TierMiniCard({ tier, unlocked }: { tier: (typeof tiers)[number]; unlock
         {unlocked ? <Feather name="check-circle" size={18} color={theme.colors.safe} /> : <Feather name="lock" size={18} color={theme.colors.textSecondary} />}
       </View>
       <Text className="mt-3 font-semibold text-lg text-textPrimary">{tier.name}</Text>
-      <Text className="mt-1 font-mono text-sm text-accent">{tier.reward}</Text>
-      <Text className="mt-3 font-ui text-xs leading-5 text-textSecondary">
-        {tier.scanThreshold} scans · {tier.referralThreshold} referrals
-      </Text>
+      <Text className="mt-1 font-mono text-sm text-accent">{tier.allocation}</Text>
+      <Text className="mt-3 font-ui text-xs leading-5 text-textSecondary">{tier.requirement}</Text>
     </View>
   );
 }
@@ -50,21 +48,19 @@ function TierMiniCard({ tier, unlocked }: { tier: (typeof tiers)[number]; unlock
 export default function AirdropScreen() {
   const insets = useSafeAreaInsets();
   const { showToast } = useToast();
-  const { status, referral, isLoading, error, fetchStatus, claimReferral } = useAirdropStore();
+  const { status, referral, isLoading, error, fetchStatus } = useAirdropStore();
 
   useEffect(() => {
     void fetchStatus();
   }, [fetchStatus]);
 
-  const currentTierNumber = Math.max(1, Math.min(4, status?.tier ?? 1));
+  const currentTierNumber = Math.max(1, Math.min(tiers.length, status?.tier ?? 1));
   const currentTier = tiers.find((tier) => tier.tier === currentTierNumber) ?? tiers[0];
   const totalScans = status?.totalScans ?? status?.scanCount ?? 0;
   const nextTierAt = status?.nextTierAt ?? currentTier.scanThreshold;
-  const scansUntilNextTier = Math.max(0, nextTierAt - totalScans);
   const progress = nextTierAt > 0 ? (totalScans / nextTierAt) * 100 : 100;
   const referralCode = referral?.referralCode || referral?.code || status?.referralCode || "SQR";
   const referralLink = referral?.referralLink || referral?.link || status?.referralLink || `https://safescan-qr.onrender.com/?ref=${referralCode}`;
-  const pendingRewards = referral?.pendingRewards ?? 0;
   const totalReferrals = referral?.totalReferrals ?? referral?.referrals ?? status?.referrals ?? 0;
 
   const copyReferralCode = async () => {
@@ -85,18 +81,13 @@ export default function AirdropScreen() {
     showToast("Referral link ready to share.", "success");
   };
 
-  const claim = async () => {
-    const result = await claimReferral();
-    showToast(result.message, "info");
-  };
-
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: theme.colors.background }}
       contentContainerStyle={{ paddingHorizontal: 16, paddingTop: insets.top + 28, paddingBottom: Math.max(insets.bottom, 20) + 36, gap: 18 }}
     >
       <View className="gap-2">
-        <Text className="font-semibold text-xs uppercase tracking-widest text-accent">Community rewards</Text>
+        <Text className="font-semibold text-xs uppercase tracking-widest text-accent">Community allocation</Text>
         <Text className="font-semibold text-3xl text-textPrimary">SQR Airdrop</Text>
       </View>
 
@@ -104,21 +95,23 @@ export default function AirdropScreen() {
       {error ? <Text className="rounded-web border border-risk-danger-border bg-risk-danger-bg p-3 text-center font-ui text-risk-danger-text">{error}</Text> : null}
 
       <View className="rounded-web border border-primaryDim bg-surfaceElevated p-5">
-        <View className="flex-row items-start justify-between gap-4">
-          <View>
+        <View className="flex-row flex-wrap items-start justify-between gap-4">
+          <View className="min-w-[112px] flex-1">
             <Text className="font-semibold text-xs uppercase tracking-widest text-accent">Current tier</Text>
-            <Text className="mt-2 font-mono text-6xl text-textPrimary">{currentTier.tier}</Text>
-            <Text className="font-semibold text-2xl text-textPrimary">{currentTier.name}</Text>
+            <Text className="mt-2 font-semibold text-4xl text-textPrimary">{currentTier.tier}</Text>
+            <Text className="font-semibold text-xl text-textPrimary">{currentTier.name}</Text>
           </View>
-          <View className="rounded-web border border-primaryDim bg-primaryDim px-4 py-3">
-            <Text className="font-semibold text-xs uppercase tracking-widest text-accent">Reward</Text>
-            <Text className="mt-1 font-mono text-xl text-textPrimary">{currentTier.rewardSol} SOL</Text>
+          <View className="max-w-full rounded-web border border-primaryDim bg-primaryDim px-4 py-3">
+            <Text className="font-semibold text-xs uppercase tracking-widest text-accent">Allocation</Text>
+            <Text className="mt-1 font-semibold text-lg text-textPrimary" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
+              {currentTier.allocation}
+            </Text>
           </View>
         </View>
 
         <View className="mt-6 gap-3">
           <ProgressBar progress={progress} />
-          <Text className="font-ui text-sm text-textSecondary">{scansUntilNextTier} scans until next tier</Text>
+          <Text className="font-ui text-sm text-textSecondary">{currentTier.requirement}</Text>
         </View>
       </View>
 
@@ -133,13 +126,13 @@ export default function AirdropScreen() {
             <Text className="font-ui text-sm text-textSecondary">Total referrals</Text>
           </View>
           <View className="flex-1 rounded-web border border-border p-3">
-            <Text className="font-mono text-2xl text-textPrimary">{pendingRewards}</Text>
-            <Text className="font-ui text-sm text-textSecondary">Pending SOL</Text>
+            <Text className="font-mono text-2xl text-textPrimary">{totalScans}</Text>
+            <Text className="font-ui text-sm text-textSecondary">Total scans</Text>
           </View>
         </View>
         <View className="mt-5 gap-3">
           <Button title="Share Referral Link" onPress={shareReferralLink} />
-          <Button title="Claim Referral" variant="secondary" onPress={claim} />
+          <Button title="Admin Distribution Pending" variant="secondary" disabled />
         </View>
       </View>
 

@@ -1,12 +1,75 @@
 import { AntDesign } from "@expo/vector-icons";
 import { ActivityIndicator, Image, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { config } from "@/constants/config";
 import { theme } from "@/constants/theme";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
+import { useAuthStore } from "@/stores/authStore";
+
+function GoogleAuthActions() {
+  const { signIn, isLoading, error } = useGoogleAuth();
+
+  return (
+    <>
+      <Pressable
+        accessibilityRole="button"
+        disabled={isLoading}
+        onPress={signIn}
+        style={({ pressed }) => ({
+          minHeight: 50,
+          borderRadius: 8,
+          backgroundColor: theme.colors.textPrimary,
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "row",
+          gap: 10,
+          opacity: isLoading ? 0.65 : 1,
+          transform: [{ scale: pressed ? 0.98 : 1 }]
+        })}
+      >
+        <AntDesign name="google" size={20} color={theme.colors.backgroundEnd} />
+        <Text style={{ color: theme.colors.backgroundEnd, fontFamily: theme.fonts.sansSemiBold, fontSize: 15 }}>Sign in with Google</Text>
+      </Pressable>
+
+      {isLoading ? <ActivityIndicator color={theme.colors.accent} /> : null}
+      {error ? <Text style={{ color: theme.colors.danger, fontSize: 13, lineHeight: 19, textAlign: "center" }}>{error}</Text> : null}
+    </>
+  );
+}
+
+function MissingAndroidClientActions() {
+  const continueAsDemoUser = useAuthStore((state) => state.continueAsDemoUser);
+
+  return (
+    <>
+      <Text style={{ color: theme.colors.textSecondary, fontSize: 13, lineHeight: 20, textAlign: "center" }}>
+        Google sign-in needs EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID for Android. Continue in demo mode to test the SafeScan app while that OAuth client is configured.
+      </Text>
+      <Pressable
+        accessibilityRole="button"
+        onPress={continueAsDemoUser}
+        style={({ pressed }) => ({
+          minHeight: 50,
+          borderRadius: 8,
+          backgroundColor: theme.colors.accent,
+          borderWidth: 1,
+          borderColor: theme.colors.accent,
+          alignItems: "center",
+          justifyContent: "center",
+          transform: [{ scale: pressed ? 0.98 : 1 }]
+        })}
+      >
+        <Text style={{ color: theme.colors.background, fontFamily: theme.fonts.sansSemiBold, fontSize: 15 }}>Continue in demo mode</Text>
+      </Pressable>
+    </>
+  );
+}
 
 export default function GoogleAuthScreen() {
   const insets = useSafeAreaInsets();
-  const { signIn, isLoading, error } = useGoogleAuth();
+  const canUseGoogleOnAndroid = Boolean(config.googleAndroidClientId);
 
   return (
     <View
@@ -30,30 +93,7 @@ export default function GoogleAuthScreen() {
       </View>
 
       <View style={{ width: "100%", gap: 12 }}>
-        <Pressable
-          accessibilityRole="button"
-          disabled={isLoading}
-          onPress={signIn}
-          style={({ pressed }) => ({
-            minHeight: 50,
-            borderRadius: 8,
-            backgroundColor: theme.colors.textPrimary,
-            borderWidth: 1,
-            borderColor: theme.colors.border,
-            alignItems: "center",
-            justifyContent: "center",
-            flexDirection: "row",
-            gap: 10,
-            opacity: isLoading ? 0.65 : 1,
-            transform: [{ scale: pressed ? 0.98 : 1 }]
-          })}
-        >
-          <AntDesign name="google" size={20} color={theme.colors.backgroundEnd} />
-          <Text style={{ color: theme.colors.backgroundEnd, fontFamily: theme.fonts.sansSemiBold, fontSize: 15 }}>Sign in with Google</Text>
-        </Pressable>
-
-        {isLoading ? <ActivityIndicator color={theme.colors.accent} /> : null}
-        {error ? <Text style={{ color: theme.colors.danger, fontSize: 13, lineHeight: 19, textAlign: "center" }}>{error}</Text> : null}
+        {canUseGoogleOnAndroid ? <GoogleAuthActions /> : <MissingAndroidClientActions />}
       </View>
     </View>
   );
